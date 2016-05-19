@@ -20,6 +20,7 @@ type Node struct {
 type Trie struct {
 	root *Node
 	size int
+	trim map[rune]int
 }
 
 type ByKeys []string
@@ -80,6 +81,27 @@ func (t *Trie) Find(key string) (*Node, bool) {
 	}
 
 	return node, true
+}
+
+func (t *Trie) AddTrim(trim string) {
+	for _, r := range []rune(trim) {
+		t.trim[r] = 1
+	}
+}
+
+func (t *Trie) Replace(val string) string {
+	runes := []rune(val)
+	n := 0
+	for n < len(runes) {
+		c, ok := replace(t.Root(), runes[n:])
+		if ok {
+			n = n + c
+		} else {
+			n = n + 1
+		}
+	}
+
+	return string(runes)
 }
 
 // Removes a key from the trie, ensuring that
@@ -198,6 +220,41 @@ func findNode(node *Node, runes []rune) *Node {
 	}
 
 	return findNode(n, nrunes)
+}
+
+func replace(node *Node, runes []rune) (int, bool) {
+	if node == nil {
+		return 0, false
+	}
+
+	if len(runes) == 0 {
+		return 0, false
+	}
+
+	n, ok := node.children[runes[0]]
+	if !ok {
+		n, ok = node.children[nul]
+		return 0, ok
+	}
+
+	var temp []rune
+	if len(runes) == 1 {
+		temp = runes[0:0]
+	} else {
+		temp = runes[1:]
+	}
+
+	c, r := replace(n, temp)
+	if r {
+		runes[0] = rune('*')
+		return c + 1, r
+	} else {
+		n, ok = n.children[nul]
+		if ok {
+			runes[0] = rune('*')
+		}
+		return 1, ok
+	}
 }
 
 func maskruneslice(rs []rune) uint64 {
